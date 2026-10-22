@@ -1,0 +1,17 @@
+# Local-only materials: do not publish interview prep or package setup files
+06-Interview-Preparation/
+PACKAGE-START-HERE.md
+04-Detection-Engineering/lab04_notepad_rules.EXAMPLE.xml
+
+# Secrets and machine-local files
+.env
+.env.*
+*.pem
+*.pfx
+*.p12
+*.key
+*.kdbx
+*.log
+*.tmp
+Thumbs.db
+.DS_Store

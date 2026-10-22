@@ -1,17 +1,20 @@
-# Evidence index and pre-publication review
+# LAB-04 — Evidence Index
 
-These PNG files are **copies of screenshots supplied during the LAB-04 session**, organized by case. File names have been made descriptive; their image contents were not altered.
+These are **25 screenshots** captured during four authorized SOC lab investigations, grouped by case. The images record Windows and Wazuh alert details, local validation commands and the evidence correlation process.
 
-| Case | Evidence emphasis |
-| --- | --- |
-| SOC-001 | Wazuh RDP-related alert + original Windows Event 4624, Record 23313 |
-| SOC-002 | Wazuh authentication-failure alert + original Event 4625, Record 23498 |
-| SOC-003 | Rule 100201 custom alert + original Sysmon Record 1536; additional level-12 `sdbinst.exe` triage |
-| SOC-004 | Defender detection/quarantine events 1116/1117 and Wazuh rules 62123/62124 |
+| Case | Count | Primary evidence |
+| --- | ---: | --- |
+| [SOC-001](../03-SOC-Investigations/SOC-001-Remote-Logon/investigation-report.md) | 3 | Wazuh 92653; Security 4624 and record 23313 |
+| [SOC-002](../03-SOC-Investigations/SOC-002-Failed-Authentication/investigation-report.md) | 4 | Security 4625 and record 23498; failed password fields |
+| [SOC-003](../03-SOC-Investigations/SOC-003-Process-Detection/investigation-report.md) | 9 | Rule 100201; Sysmon record 1536; `sdbinst.exe` triage |
+| [SOC-004](../03-SOC-Investigations/SOC-004-Defender-Response/investigation-report.md) | 9 | Defender 1116/1117; Wazuh 62123/62124; quarantine |
 
-## Before putting this repository on GitHub
-1. **Personally open every screenshot**. Confirm no password-manager popups, email addresses, passwords, recovery keys, enrollment secrets or access tokens are visible. Blur or omit any image that contains them.
-2. The screenshots expose lab hostnames, usernames and private IP addresses. These are not public IPs, but consider whether you wish to disclose your lab topology.
-3. The screenshot collection is an informal lab evidence archive: **no formal chain-of-custody procedures or cryptographic evidence-manifest hashes are claimed**.
-4. Screenshots were captured across multiple windows and not all views prove every field; match each report to its corresponding source record before publication.
-5. Publishing this package does not publish or restore a Defender-quarantined EICAR artifact. **Do not upload antivirus test strings or executable test files.**
+## Evidence interpretation and handling
+
+- Every screenshot was visually reviewed before initial publication for visibly exposed credentials, password-manager popups, personal data and production-system context.
+- Screenshots show fictional lab hostnames, local usernames and RFC 1918 private IP addresses to preserve the technical event context.
+- The images are copies of material captured during the exercises; no formal digital-forensic chain of custody or cryptographic evidence integrity manifest is claimed.
+- The case reports distinguish directly observed fields from analyst assessments and explicit limitations. A single screenshot may illustrate only part of an event; consult the linked report and related images.
+- The harmless EICAR test file itself is **not** included. Do not publish live API keys, agent enrollment secrets, passwords or antivirus test samples as artifacts.
+
+[Return to project README](../README.md)

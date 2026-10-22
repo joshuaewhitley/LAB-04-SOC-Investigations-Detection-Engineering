@@ -19,7 +19,7 @@ A custom Wazuh rule detected a **benign, operator-initiated Notepad process** la
 | Configuration test | `sudo /var/ossec/bin/wazuh-analysisd -t` — exit code `0` |
 | Live test | Wazuh Threat Hunting returned **one** alert for `rule.id: "100201"` |
 
-> The custom rule XML shown in this package is reconstructed from a screenshot. **Before publishing as original source**, export the live file from `/var/ossec/etc/rules/lab04_notepad_rules.xml` on `WL-SIEM01` and compare it.
+> **Source artifact:** The actual deployed rule was exported from `/var/ossec/etc/rules/lab04_notepad_rules.xml` on `WL-SIEM01`, copied to the Windows host and verified with `Get-Content` before Git publication. [View the exported rule](../../04-Detection-Engineering/lab04_notepad_rules.xml).
 
 ## Correlated process evidence
 | Field | Verified value |

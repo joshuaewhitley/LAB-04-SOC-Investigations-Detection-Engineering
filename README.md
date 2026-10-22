@@ -1,119 +1,94 @@
 # LAB-04 — SOC Investigations & Detection Engineering
 
-**Windows Security Monitoring | Wazuh SIEM | Sysmon | Microsoft Defender Antivirus | Active Directory**
+**Windows Security Monitoring · Wazuh SIEM · Sysmon · Microsoft Defender Antivirus · Active Directory**
 
-## Project overview
+> **Portfolio project / controlled lab.** Four documented SOC exercises with original Windows-to-Wazuh event correlation, a live-tested custom detection, and antivirus quarantine verification. This is not a record of real compromise or production incident response.
 
-LAB-04 is a hands-on security operations lab built to practice endpoint telemetry collection, SIEM alert triage, evidence correlation, and detection engineering. It combines an isolated Hyper-V network, an Active Directory domain, a Windows 11 endpoint, and a self-hosted Wazuh SIEM.
+## At a glance
 
-Each exercise compares centrally collected Wazuh alerts with original Windows events. Investigation writeups distinguish **observed evidence**, **analyst interpretation**, and **limitations**.
+| Component | Verified implementation |
+| --- | --- |
+| Infrastructure | Three Hyper-V VMs on the isolated `10.10.10.0/24` lab network |
+| Domain controller | `WL-DC01` — Windows Server 2025 AD DS/DNS (`10.10.10.10`) |
+| Monitored endpoint | `WL-WIN11-01` — Windows 11 Pro (`10.10.10.30`), Wazuh agent **001** |
+| SIEM | `WL-SIEM01` — Ubuntu Server / Wazuh (`10.10.10.20`) |
+| Telemetry | Windows Security, Sysmon Operational, Microsoft Defender Antivirus Operational |
+| Validated exercises | **4** SOC case reports plus additional `sdbinst.exe` process triage |
+| Detection engineering | Original custom Wazuh rule **100201**, live-tested against Notepad process creation |
+| Supporting artifacts | **25** categorized screenshots; original source XML; four written case reports |
 
-**Outcome:** Four controlled SOC investigation scenarios completed, including a live-tested custom Wazuh detection rule and a Microsoft Defender Antivirus quarantine test using harmless EICAR test data.
-
-> **Scope:** This is a personal training environment. It does not demonstrate a real attacker, production incident response, Microsoft Defender for Endpoint licensing, or comprehensive threat coverage. All identities and addresses are lab-only.
-
-## Architecture
+## Architecture and data flow
 
 ```mermaid
 flowchart LR
-    subgraph HyperV[Hyper-V host / LAB-ISOLATED virtual switch]
-        DC["WL-DC01<br/>Windows Server 2025<br/>AD DS + DNS<br/>10.10.10.10"]
-        WIN["WL-WIN11-01<br/>Windows 11 Pro<br/>Wazuh Agent 001<br/>Sysmon + Defender Antivirus<br/>10.10.10.30"]
-        SIEM["WL-SIEM01<br/>Ubuntu Server<br/>Wazuh SIEM<br/>10.10.10.20"]
-        DC <-->|"Domain DNS and authentication"| WIN
-        WIN -->|"Windows Security, Sysmon, Defender events"| SIEM
+    subgraph Lab["Hyper-V isolated lab — 10.10.10.0/24"]
+        DC["WL-DC01<br/>Windows Server 2025<br/>AD DS / DNS · 10.10.10.10"]
+        WIN["WL-WIN11-01<br/>Windows 11 Pro<br/>Wazuh Agent 001 · 10.10.10.30"]
+        SIEM["WL-SIEM01<br/>Ubuntu + Wazuh<br/>10.10.10.20"]
+        DC <-->|"Domain DNS / authentication"| WIN
+        WIN -->|"Security + Sysmon + Defender events"| SIEM
     end
+    SIEM --> HUNT["Wazuh rules<br/>Threat Hunting dashboard"]
 ```
 
-| Component | Function | Address / identity |
-| --- | --- | --- |
-| `WL-DC01` | Active Directory Domain Services and DNS | `10.10.10.10`; `corp.whitleylab.test` |
-| `WL-WIN11-01` | Domain-joined Windows 11 Pro endpoint | `10.10.10.30`; Wazuh agent `001` |
-| `WL-SIEM01` | Ubuntu-based Wazuh manager, indexer, dashboard | `10.10.10.20` |
-| `LAB-ISOLATED` | Hyper-V isolated virtual switch | `10.10.10.0/24` lab subnet |
+The Wazuh Windows agent was confirmed active. Agent logs showed collection initialization for all three event channels, and the relevant events were subsequently observed in Wazuh Threat Hunting and independently verified in the endpoint logs.
 
-**Telemetry flow:** Windows Security, Sysmon Operational, and Microsoft Defender Operational event logs → Wazuh Windows agent → Wazuh server and detection rules → Threat Hunting dashboard.
+[**Architecture and verification**](01-Lab-Architecture/README.md) · [**SIEM collection configuration**](02-SIEM-Configuration/README.md)
 
-The Wazuh agent was confirmed **Active**. Its logs confirmed collection initialization for all three event channels. Specific Windows, Sysmon, and Defender alerts were verified at both the SIEM and source endpoint.
+## Investigations
 
-## Investigation results
-
-| ID | Scenario | Source and SIEM evidence | Finding / disposition |
+| Case | Scenario and disposition | Verified source + Wazuh evidence | Report |
 | --- | --- | --- | --- |
-| **SOC-001** | Remote interactive logon | Wazuh `92653`; Security `4624`, event record `23313`, logon type `10` | Known local administrative logon; consistent with user-confirmed Hyper-V Enhanced Session activity. Source address `0.0.0.0` did not independently establish origin. |
-| **SOC-002** | Failed authentication | Security `4625`, event record `23498`; status `0xC000006D`, substatus `0xC000006A` | Controlled bad-password attempt against local `labadmin`, independently correlated with Wazuh. |
-| **SOC-003** | Custom process detection | Sysmon `1`, record `1536`; Wazuh custom rule `100201`, level `3` | Authorized PowerShell-to-Notepad execution detected by custom rule; original Sysmon event matched. |
-| **SOC-004** | Antivirus response | Defender `1116`/record `376` → Wazuh `62123`; Defender `1117`/record `378` → Wazuh `62124` | Harmless EICAR test detected by real-time protection; Defender reported successful quarantine with error code `0x00000000`. |
+| **SOC-001** | Remote-interactive logon; **authorized Hyper-V administrative activity** | Windows Security `4624`, record `23313`, type `10`; Wazuh `92653` | [Read SOC-001](03-SOC-Investigations/SOC-001-Remote-Logon/investigation-report.md) |
+| **SOC-002** | Failed interactive logon; **controlled incorrect-password exercise** | Security `4625`, record `23498`; status `0xC000006D`, substatus `0xC000006A` | [Read SOC-002](03-SOC-Investigations/SOC-002-Failed-Authentication/investigation-report.md) |
+| **SOC-003** | Sysmon process telemetry and **live custom-rule validation** | Sysmon Event `1`, record `1536`; custom Wazuh `100201`, level `3` | [Read SOC-003](03-SOC-Investigations/SOC-003-Process-Detection/investigation-report.md) |
+| **SOC-004** | Harmless EICAR antivirus test; **successful quarantine reported** | Defender `1116`/record `376` → Wazuh `62123`; `1117`/record `378` → Wazuh `62124` | [Read SOC-004](03-SOC-Investigations/SOC-004-Defender-Response/investigation-report.md) |
 
-### Additional high-severity alert triage
+### Additional high-severity process investigation
 
-A Wazuh **level 12** alert (`92058`) identified execution of `C:\Windows\System32\sdbinst.exe`. Investigation matched Wazuh to **Sysmon Event ID 1, record 567**. The process was launched by `svchost.exe` associated with `PcaSvc` (Program Compatibility Assistant), and the executable had a **valid Microsoft digital signature**. An independently calculated SHA-256 matched the Sysmon-recorded hash. **Assessment: likely benign Windows compatibility activity**, not proven malicious. A valid signature and matching hash alone do not prove intent; surrounding activity was not exhaustively investigated.
+Wazuh Rule `92058` (level 12) flagged `C:\Windows\System32\sdbinst.exe`. The original Sysmon Event `1`, Record `567` was correlated with the SIEM alert. Process lineage pointed to `svchost.exe` associated with `PcaSvc`; Authenticode showed a valid Microsoft signature, and the on-disk SHA-256 matched the Sysmon record. **Assessment: likely benign Windows compatibility activity**, with the explicit limitation that a legitimate signature and matching file hash do not prove intent. See the [SOC-003 report](03-SOC-Investigations/SOC-003-Process-Detection/investigation-report.md).
 
-## Detection engineering
+## Detection engineering: Rule 100201
 
-The built-in Wazuh Sysmon process-creation rule `61603` is configured at **level 0**. To validate custom alerting, a low-severity rule was added under `/var/ossec/etc/rules/`:
+- **Objective:** verify that a benign process-creation event traverses Sysmon → Wazuh agent → Wazuh detection rules → SIEM alert.
+- **Parent:** Wazuh built-in Sysmon Event 1 rule `61603` (level 0).
+- **Custom child rule:** `100201`, level 3, matches the process image ending in `\notepad.exe` (case-insensitive PCRE2).
+- **Validation:** `wazuh-analysisd -t` exited successfully; after `Start-Process notepad.exe`, Wazuh produced Rule `100201` and its source Sysmon Record `1536` was confirmed locally.
+- **Limitation:** this is a deliberately broad **test rule**, not a production-grade malicious-process detector.
 
-- **Custom rule:** `100201`, inheriting parent rule `61603`
-- **Condition:** process image ends with `\notepad.exe` (case insensitive)
-- **Purpose:** generate a predictable lab alert for benign process creation, *not* label Notepad as malicious
-- **Validation:** `wazuh-analysisd -t` returned `0`; manager confirmed active; live Notepad execution generated Wazuh Rule `100201`
-- **Evidence:** Sysmon Event ID `1`, record `1536`, matched the Wazuh alert by event number, time, executable, account and parent process (`powershell.exe`)
-
-The corresponding XML configuration should be published in `04-Detection-Engineering/` with a brief explanation of tuning and false-positive implications. A process name alone would not be a high-fidelity production detection.
+[**View the actual exported rule XML**](04-Detection-Engineering/lab04_notepad_rules.xml) · [**Detection engineering notes**](04-Detection-Engineering/README.md) · [**Screenshot evidence**](05-Evidence/README.md)
 
 ## Skills demonstrated
 
-- Windows endpoint onboarding and SIEM agent troubleshooting
-- Collection of Windows Security, Sysmon, and Defender Antivirus event channels
-- Windows-to-SIEM evidence correlation using event IDs, **EventRecordID**, timestamps, accounts, and process metadata
-- Authentication failure-code interpretation and distinguishing expected logons from suspicious events
-- Sysmon process lineage, digital-signature inspection, and on-disk hash verification
-- Custom rule authoring, configuration validation, and live detection testing
-- Defender Antivirus real-time detection and automated quarantine validation
-- Triage documentation with clear findings, dispositions and uncertainties
+- SIEM deployment, endpoint agent onboarding, network/DNS troubleshooting and log channel collection
+- Alert triage, Windows Security 4624/4625 interpretation, source-event correlation and evidence documentation
+- Sysmon process lineage, Authenticode verification and SHA-256 comparison
+- Custom Wazuh detection authoring, syntax validation and live execution testing
+- Microsoft Defender Antivirus alerting, automated quarantine confirmation and Wazuh correlation
+- Distinguishing authorized activity, benign tests and likely-benign alerts from proven compromise
 
-## Repository layout
+## Repository contents
 
-```text
-LAB-04-Portfolio/
-├── README.md
-├── 01-Lab-Architecture/
-├── 02-SIEM-Configuration/
-├── 03-SOC-Investigations/
-│   ├── SOC-001-Remote-Logon/
-│   ├── SOC-002-Failed-Authentication/
-│   ├── SOC-003-Process-Detection/
-│   └── SOC-004-Defender-Response/
-├── 04-Detection-Engineering/
-├── 05-Evidence/
-│   ├── SOC-001/
-│   ├── SOC-002/
-│   ├── SOC-003/
-│   └── SOC-004/
-└── 06-Interview-Preparation/
-```
+| Path | Purpose |
+| --- | --- |
+| [`01-Lab-Architecture/`](01-Lab-Architecture/README.md) | Lab topology and verified environment details |
+| [`02-SIEM-Configuration/`](02-SIEM-Configuration/README.md) | Telemetry flow and sanitized Windows agent configuration |
+| [`03-SOC-Investigations/`](03-SOC-Investigations/SOC-001-Remote-Logon/investigation-report.md) | Four case reports with methodology, findings and limitations |
+| [`04-Detection-Engineering/`](04-Detection-Engineering/README.md) | Original Wazuh XML rule and validation notes |
+| [`05-Evidence/`](05-Evidence/README.md) | 25 original lab screenshots organized by investigation |
 
-## Evidence standards and limitations
+## Scope, limitations and evidence handling
 
-Every published investigation should include: objective, detection details, original event reference, relevant screenshots or sanitized exports, analysis, timeline, disposition, and limitations. Screenshots and exports must be inspected before publication for passwords, enrollment keys, tokens, or personal information. There is no claim of formal chain-of-custody controls or production-grade incident response.
+This is an isolated personal lab. No live adversary or real malware was involved. EICAR is an antivirus test pattern; Microsoft Defender **Antivirus** is not the same as a Microsoft Defender **for Endpoint EDR** deployment. A Wazuh alert level is a rule classification, not proof of compromise. No formal forensic chain of custody, immutable evidence storage, or comprehensive enterprise coverage is claimed. Only the Windows 11 agent was confirmed enrolled in Wazuh for these investigations; domain-controller Wazuh telemetry is outside this demonstrated scope.
 
-A Wazuh rule's severity represents a rule classification, not automatic proof of malicious activity. The Microsoft Defender Antivirus integration used here is **not** a Microsoft Defender for Endpoint EDR deployment. The EICAR file is a safe, authorized antivirus-test pattern—not actual malware.
+Screenshots were visually reviewed before publication. Lab-only hosts, local accounts and private IPs are visible to make the correlation reproducible; no secrets were intentionally included. See the [evidence index](05-Evidence/README.md) and each case's limitations.
 
-## Interview walkthrough
+## Suggested interview walkthrough
 
-1. **Architecture:** Explain the domain controller, monitored endpoint, isolated Hyper-V network and Ubuntu-based Wazuh SIEM.
-2. **Triage:** Open a Wazuh alert and trace it to the original Windows event via `EventRecordID`.
-3. **Analysis:** Explain why the high-severity `sdbinst.exe` detection was assessed as likely benign, while acknowledging remaining limitations.
-4. **Detection engineering:** Show custom Rule `100201`, explain the parent rule and process-image match, and display the validated Notepad alert.
-5. **Response:** Walk through Defender Event `1116` (detection) and `1117` (quarantine), then explain why EICAR is a controlled test.
+1. Explain the Hyper-V three-VM network and the agent-to-SIEM telemetry path.
+2. Pick SOC-002 to show the `4625` failure code and source record correlation.
+3. Show the actual Rule `100201` XML, its matching alert, and Sysmon record `1536`.
+4. Explain why the level-12 `sdbinst.exe` alert was assessed as likely benign *with limitations*.
+5. Finish with Defender Events `1116`/`1117`, quarantine, and matching Wazuh Rules `62123`/`62124`.
 
-## Future improvements
-
-- Add structured evidence exports and annotated investigation timelines
-- Add a Wazuh agent on the domain controller for more complete authentication visibility
-- Test additional controlled scenarios, including detection tuning and false-positive reduction
-- Evaluate broader Sysmon coverage without overwhelming the SIEM with low-value events
-
----
-
-*Initial README assembled from observed LAB-04 results. Investigation reports, sanitized evidence screenshots, and the custom rule source still need to be added before public GitHub publication.*
+*LAB-04 — October 2026. Educational SOC and detection-engineering portfolio.*
